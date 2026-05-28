@@ -4,5 +4,8 @@
   "framework": "create-react-app",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "engines": {
+    "node": "18.x"
+  }
 }
