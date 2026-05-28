@@ -1,11 +1,7 @@
-
 {
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  "volta": {
-    "node": "18.20.0"
-  },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-accordion": "^1.2.8",
@@ -65,14 +61,8 @@
     "three": "^0.184.0",
     "vaul": "^1.1.2",
     "zod": "^3.24.4",
-    "zustand": "^5.0.13"
-  },
-  "engines": {
-    "npm": "please-use-yarn",
-    "yarn": ">=1.22.0"
-  },
-  "resolutions": {
-    "ajv": "^8.0.0"
+    "zustand": "^5.0.13",
+    "ajv": "^8.11.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -105,5 +95,8 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
+  "resolutions": {
+    "ajv": "^8.11.0"
+  }
 }
