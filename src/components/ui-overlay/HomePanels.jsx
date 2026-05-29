@@ -5,8 +5,8 @@ import { usePortfolio } from "../../store/usePortfolio";
 const ease = [0.16, 1, 0.3, 1];
 
 export default function HomePanels({ profile }) {
-  const { activeSection, setActive } = usePortfolio();
-  const show = activeSection === "home";
+  const { activeSection, setActive, introPhase } = usePortfolio();
+  const show = activeSection === "home" && introPhase === "done";
 
   return (
     <AnimatePresence>
@@ -18,14 +18,9 @@ export default function HomePanels({ profile }) {
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 1.1, ease, delay: 0.15 }}
+            transition={{ duration: 1.1, ease, delay: 0.2 }}
             className="fixed z-30 pointer-events-none"
-            style={{
-              top: "50%",
-              left: "5vw",
-              transform: "translateY(-50%)",
-              maxWidth: 360,
-            }}
+            style={{ top: "50%", left: "5vw", transform: "translateY(-50%)", maxWidth: 360 }}
             data-testid="home-left-panel"
           >
             <div className="font-display text-mid mb-3" style={{ fontSize: 10 }}>
@@ -38,21 +33,14 @@ export default function HomePanels({ profile }) {
             >
               HARSHA<span className="text-ember">.</span>
             </h1>
-            <p
-              className="text-hi mb-6"
-              style={{ fontSize: 15, lineHeight: 1.6 }}
-              data-testid="hero-tagline"
-            >
+            <p className="text-hi mb-6" style={{ fontSize: 15, lineHeight: 1.6 }} data-testid="hero-tagline">
               {profile.tagline}
             </p>
-            <p
-              className="text-mid mb-8"
-              style={{ fontSize: 13, lineHeight: 1.65 }}
-            >
+            <p className="text-mid mb-8" style={{ fontSize: 13, lineHeight: 1.65 }}>
               {profile.intro}
             </p>
             <div className="font-display text-lo" style={{ fontSize: 9 }}>
-              ▾ drag · scroll to enter <span className="text-pixel">WORK</span>
+              ▾ scroll to enter <span className="text-pixel">WORK</span>
             </div>
           </motion.div>
 
@@ -62,15 +50,9 @@ export default function HomePanels({ profile }) {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 30 }}
-            transition={{ duration: 1.1, ease, delay: 0.3 }}
+            transition={{ duration: 1.1, ease, delay: 0.35 }}
             className="fixed z-30 pointer-events-auto"
-            style={{
-              top: "50%",
-              right: "5vw",
-              transform: "translateY(-50%)",
-              maxWidth: 320,
-              textAlign: "right",
-            }}
+            style={{ top: "50%", right: "5vw", transform: "translateY(-50%)", maxWidth: 320, textAlign: "right" }}
             data-testid="home-right-panel"
           >
             <div className="font-display text-mid mb-3" style={{ fontSize: 10 }}>
@@ -110,20 +92,12 @@ export default function HomePanels({ profile }) {
               >
                 LINKEDIN ↗
               </a>
-              <a
-                href={`mailto:${profile.socials.email}`}
-                className="nav-link"
-                data-testid="social-email"
-              >
+              <a href={`mailto:${profile.socials.email}`} className="nav-link" data-testid="social-email">
                 EMAIL ↗
               </a>
             </div>
 
-            <button
-              onClick={() => setActive("work")}
-              className="btn-pixel"
-              data-testid="enter-work-btn"
-            >
+            <button onClick={() => setActive("work")} className="btn-pixel" data-testid="enter-work-btn">
               ENTER WORK ▸
             </button>
           </motion.div>

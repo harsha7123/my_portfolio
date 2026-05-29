@@ -4,155 +4,168 @@ import { useFrame } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import Hero from "./Hero";
 import Car from "./Car";
-import Billboard from "./Billboard";
+import ProjectGallery from "./ProjectGallery";
 import Embers from "./Embers";
 import Atmosphere from "./Atmosphere";
 import { usePortfolio } from "../../store/usePortfolio";
 import { PROJECTS_FALLBACK } from "../../content/portfolio";
 
 const RING_RADIUS = 6.5;
+const HIGHWAY_DURATION = 3.8; // seconds car drives on highway
+const CIRCLING_DURATION = 5.5; // seconds car circles the hero
+
+// Road dashes along Z axis for the highway intro
+function HighwayRoad() {
+  return (
+    <group>
+      {/* Road surface */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.7, -24]}>
+        <planeGeometry args={[9, 55]} />
+        <meshStandardMaterial color="#0d0d10" metalness={0.6} roughness={0.4} />
+      </mesh>
+      {/* Road edges */}
+      {[-4, 4].map((x, i) => (
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[x, -0.69, -24]}>
+          <planeGeometry args={[0.12, 55]} />
+          <meshBasicMaterial color="#FFFF69" transparent opacity={0.35} />
+        </mesh>
+      ))}
+      {/* Center dashes */}
+      {Array.from({ length: 18 }).map((_, i) => (
+        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.685, -4 - i * 3]}>
+          <planeGeometry args={[0.14, 1.8]} />
+          <meshBasicMaterial color="#FFFF69" transparent opacity={0.5} />
+        </mesh>
+      ))}
+      {/* Shoulder lines */}
+      {Array.from({ length: 18 }).map((_, i) => (
+        <React.Fragment key={`s${i}`}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-2.8, -0.685, -4 - i * 3]}>
+            <planeGeometry args={[0.06, 1.2]} />
+            <meshBasicMaterial color="#888" transparent opacity={0.2} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[2.8, -0.685, -4 - i * 3]}>
+            <planeGeometry args={[0.06, 1.2]} />
+            <meshBasicMaterial color="#888" transparent opacity={0.2} />
+          </mesh>
+        </React.Fragment>
+      ))}
+    </group>
+  );
+}
 
 export default function Arena({ heroRotationY }) {
   const carRef = useRef();
-  const guidedAngle = useRef(0);
-  const targetAngle = useRef(0);
+  const guidedAngle = useRef(-Math.PI / 2); // start at bottom of circle
+  const introStartTime = useRef(null);
+  const introPhaseStartTime = useRef(null);
+
   const {
     activeSection,
     carRingIndex,
     panelOpen,
     reducedMotion,
-    freeDrive,
-    carAngle,
-    setCarAngle,
-    carVelocity,
-    setCarVelocity,
-    setRingIndex,
+    introDone,
+    introPhase,
+    setIntroPhase,
+    setActive,
   } = usePortfolio();
 
-  useEffect(() => {
-    targetAngle.current = (carRingIndex / 4) * Math.PI * 2;
-  }, [carRingIndex]);
-
-  // Keyboard control for free-drive (WASD / Arrows)
-  useEffect(() => {
-    if (!freeDrive || activeSection !== "work") return;
-    const keys = { a: false, d: false, w: false, s: false };
-    const down = (e) => {
-      const k = e.key.toLowerCase();
-      if (k === "a" || k === "arrowleft") keys.a = true;
-      if (k === "d" || k === "arrowright") keys.d = true;
-      if (k === "w" || k === "arrowup") keys.w = true;
-      if (k === "s" || k === "arrowdown") keys.s = true;
-    };
-    const up = (e) => {
-      const k = e.key.toLowerCase();
-      if (k === "a" || k === "arrowleft") keys.a = false;
-      if (k === "d" || k === "arrowright") keys.d = false;
-      if (k === "w" || k === "arrowup") keys.w = false;
-      if (k === "s" || k === "arrowdown") keys.s = false;
-    };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-
-    let raf;
-    let last = performance.now();
-    const tick = () => {
-      const now = performance.now();
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      let v = usePortfolio.getState().carVelocity;
-      // accel/brake
-      if (keys.w) v += 1.6 * dt;
-      else if (keys.s) v -= 1.6 * dt;
-      else v *= 0.94; // friction
-      // steering (changes angle directly proportional to velocity)
-      let steer = 0;
-      if (keys.a) steer = -1;
-      else if (keys.d) steer = 1;
-      v = Math.max(-1.6, Math.min(1.6, v));
-      setCarVelocity(v);
-      const a = usePortfolio.getState().carAngle + (v + steer * 0.4) * dt;
-      setCarAngle(a);
-      // sync nearest station for HUD
-      const norm = ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-      const nearest = Math.round((norm / (Math.PI * 2)) * 4) % 4;
-      if (usePortfolio.getState().carRingIndex !== nearest) setRingIndex(nearest);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-      cancelAnimationFrame(raf);
-    };
-  }, [freeDrive, activeSection, setCarAngle, setCarVelocity, setRingIndex]);
+  const list = PROJECTS_FALLBACK;
 
   useFrame((state, dt) => {
     if (!carRef.current) return;
-    const t = state.clock.elapsedTime;
 
+    // ── INTRO SEQUENCE ──────────────────────────────────────────────────────
+    if (!introDone) return; // preloader still up
+
+    if (introPhase === "highway") {
+      if (introPhaseStartTime.current === null) {
+        introPhaseStartTime.current = state.clock.elapsedTime;
+      }
+      const elapsed = state.clock.elapsedTime - introPhaseStartTime.current;
+      const raw = Math.min(elapsed / HIGHWAY_DURATION, 1);
+      // ease-out cubic
+      const p = 1 - Math.pow(1 - raw, 2.5);
+      const z = -42 + p * (42 - RING_RADIUS); // -42 → -RING_RADIUS
+      carRef.current.position.set(0, 0, z);
+      carRef.current.rotation.y = 0; // faces +Z (toward camera)
+      if (raw >= 1) {
+        setIntroPhase("circling");
+        introPhaseStartTime.current = null;
+        guidedAngle.current = -Math.PI / 2;
+      }
+      return;
+    }
+
+    if (introPhase === "circling") {
+      if (introPhaseStartTime.current === null) {
+        introPhaseStartTime.current = state.clock.elapsedTime;
+      }
+      const elapsed = state.clock.elapsedTime - introPhaseStartTime.current;
+      const progress = Math.min(elapsed / CIRCLING_DURATION, 1);
+      // 1.25 full orbits
+      const angle = -Math.PI / 2 + progress * 1.25 * Math.PI * 2;
+      guidedAngle.current = angle;
+
+      const x = Math.cos(angle) * RING_RADIUS;
+      const z = Math.sin(angle) * RING_RADIUS;
+      carRef.current.position.set(x, 0, z);
+      carRef.current.rotation.y = Math.atan2(-x, -z);
+
+      if (progress >= 1) {
+        setIntroPhase("done");
+        setActive("home");
+        introPhaseStartTime.current = null;
+      }
+      return;
+    }
+
+    // ── NORMAL SECTIONS ──────────────────────────────────────────────────────
+    const t = state.clock.elapsedTime;
     let a;
-    if (freeDrive && activeSection === "work") {
-      a = carAngle;
-    } else if (activeSection === "home" && !reducedMotion) {
-      guidedAngle.current += dt * 0.55;  // faster orbit per user request
+
+    if (activeSection === "home" && !reducedMotion) {
+      guidedAngle.current += dt * 0.5;
       a = guidedAngle.current;
     } else if (activeSection === "work") {
-      if (!panelOpen) {
-        const diff = targetAngle.current - guidedAngle.current;
-        guidedAngle.current += diff * Math.min(1, dt * (reducedMotion ? 8 : 1.8));
-      } else {
-        const diff = targetAngle.current - guidedAngle.current;
-        guidedAngle.current += diff * Math.min(1, dt * (reducedMotion ? 8 : 3));
-      }
+      // Slow orbit while work cards are visible
+      guidedAngle.current += dt * 0.22;
       a = guidedAngle.current;
     } else {
-      const diff = Math.PI - guidedAngle.current;
-      guidedAngle.current += diff * Math.min(1, dt * (reducedMotion ? 8 : 1.2));
+      // contact: park at back
+      const target = Math.PI;
+      const diff = target - guidedAngle.current;
+      guidedAngle.current += diff * Math.min(1, dt * 1.2);
       a = guidedAngle.current;
     }
 
     const x = Math.cos(a) * RING_RADIUS;
     const z = Math.sin(a) * RING_RADIUS;
     carRef.current.position.set(x, 0, z);
-    // Face the hero in the centre (turn the car's front toward origin).
-    // The car model's "forward" is +Z, and we want it pointing toward -direction-from-origin.
     carRef.current.rotation.y = Math.atan2(-x, -z);
     carRef.current.position.y = reducedMotion ? 0 : Math.sin(t * 4) * 0.01;
   });
 
-  // Single billboard whose position+content updates with the current station.
-  // Camera in WORK mode looks at midpoint between hero and car from a
-  // perpendicular offset; the billboard sits on the *opposite* side of that
-  // midpoint from the camera, directly in the camera's view cone.
-  const activeStation = useMemo(() => {
-    const i = Math.max(0, Math.min(PROJECTS_FALLBACK.length - 1, carRingIndex));
-    const p = PROJECTS_FALLBACK[i];
-    const a = (i / 4) * Math.PI * 2;
-    const dist = 12;
-    const bbX = Math.cos(a) * (RING_RADIUS / 2) + Math.sin(a) * dist;
-    const bbZ = Math.sin(a) * (RING_RADIUS / 2) - Math.cos(a) * dist;
-    return {
-      ...p,
-      index: i,
-      position: [bbX, 2.2, bbZ],
-      rotationY: Math.atan2(-Math.sin(a), Math.cos(a)),
-    };
-  }, [carRingIndex]);
+  const showHighway = introPhase === "highway";
+  const introDone_ = introPhase === "done";
 
   return (
     <group>
+      {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.7, 0]} receiveShadow>
         <circleGeometry args={[60, 64]} />
         <meshStandardMaterial color="#0a0a0b" metalness={0.55} roughness={0.6} />
       </mesh>
 
+      {/* Ring track */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.68, 0]}>
         <ringGeometry args={[RING_RADIUS - 1.4, RING_RADIUS + 1.4, 96]} />
         <meshStandardMaterial color="#111114" metalness={0.8} roughness={0.25} emissive="#0a0a0b" />
       </mesh>
 
-      {Array.from({ length: 24 }).map((_, i) => {
+      {/* Track marker dashes */}
+      {introDone_ && Array.from({ length: 24 }).map((_, i) => {
         const a = (i / 24) * Math.PI * 2;
         const x = Math.cos(a) * RING_RADIUS;
         const z = Math.sin(a) * RING_RADIUS;
@@ -164,30 +177,24 @@ export default function Arena({ heroRotationY }) {
         );
       })}
 
+      {/* Highway road (only during intro) */}
+      {showHighway && <HighwayRoad />}
+
       <ContactShadows position={[0, -0.69, 0]} opacity={0.65} scale={6} blur={2.4} far={4} color="#000" />
 
       <Hero position={[0, 0, 0]} rotationY={heroRotationY} />
 
-      {/* Scene-wide low fill light only (Hero owns its dedicated key/fill/rim) */}
       <pointLight position={[0, 6, 0]} color="#3a4658" intensity={0.6} distance={30} decay={1.4} />
 
       <Car groupRef={carRef} />
 
-      {/* Single billboard for the active station — content + position cycles */}
-      <Billboard
-        key={activeStation.id}
-        position={activeStation.position}
-        rotationY={activeStation.rotationY}
-        index={activeStation.index}
-        title={activeStation.title}
-        accent={activeStation.accent}
-        screenshot={activeStation.screenshot}
-        active={activeSection === "work"}
+      {/* Project gallery — visible in work section after intro */}
+      <ProjectGallery
+        projects={list}
+        visible={introDone_ && activeSection === "work"}
       />
 
       <Embers count={35} radius={14} />
-
-      {/* Cinematic background atmosphere — moon, skyline, window-lights */}
       <Atmosphere />
     </group>
   );

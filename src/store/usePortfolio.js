@@ -2,7 +2,6 @@ import { create } from "zustand";
 
 export const SECTIONS = ["home", "work", "contact"];
 
-// detect prefs/quality up front
 const reducedMotion =
   typeof window !== "undefined" &&
   window.matchMedia &&
@@ -22,39 +21,24 @@ const storedSound =
     ? window.localStorage.getItem("harsha_sound") === "on"
     : false;
 
-const storedFreeDrive =
-  typeof window !== "undefined" && window.localStorage
-    ? window.localStorage.getItem("harsha_free_drive") === "on"
-    : false;
-
 export const usePortfolio = create((set, get) => ({
   activeSection: "home",
   setActive: (s) => set({ activeSection: s }),
 
+  // Intro sequence: highway → circling → done
+  introPhase: "highway", // 'highway' | 'circling' | 'done'
+  setIntroPhase: (p) => set({ introPhase: p }),
+
   // WORK arena
   carRingIndex: 0,
-  isDriving: false,
-  focusedBillboardId: null,
   panelOpen: false,
-
-  // Continuous free-drive mode (Tier 2 — keyboard / on-screen control)
-  freeDrive: storedFreeDrive,
-  carAngle: 0, // current absolute angle in radians (free-drive uses this)
-  carVelocity: 0, // radians/sec
+  carAngle: 0,
+  carVelocity: 0,
 
   setRingIndex: (i) => set({ carRingIndex: i }),
-  setDriving: (b) => set({ isDriving: b }),
-  setFocused: (id) => set({ focusedBillboardId: id }),
   setPanelOpen: (b) => set({ panelOpen: b }),
   setCarAngle: (a) => set({ carAngle: a }),
   setCarVelocity: (v) => set({ carVelocity: v }),
-  toggleFreeDrive: () =>
-    set((s) => {
-      const v = !s.freeDrive;
-      if (typeof window !== "undefined")
-        window.localStorage.setItem("harsha_free_drive", v ? "on" : "off");
-      return { freeDrive: v };
-    }),
 
   // user options
   soundOn: storedSound,
@@ -72,7 +56,7 @@ export const usePortfolio = create((set, get) => ({
     set({ soundOn: v });
   },
 
-  // intro
+  // preloader
   introDone: false,
   finishIntro: () => set({ introDone: true }),
 }));

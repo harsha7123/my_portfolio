@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePortfolio } from "../../store/usePortfolio";
 import { PROJECTS_FALLBACK } from "../../content/portfolio";
-import { sfxIgnition, sfxWhoosh, sfxClick } from "../../lib/audio";
+import { sfxIgnition, sfxClick } from "../../lib/audio";
 
 const ease = [0.16, 1, 0.3, 1];
 
@@ -10,37 +10,26 @@ export default function WorkOverlay({ projects }) {
   const {
     activeSection,
     carRingIndex,
-    setRingIndex,
     panelOpen,
     setPanelOpen,
-    freeDrive,
-    toggleFreeDrive,
+    setRingIndex,
+    introPhase,
   } = usePortfolio();
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
-  const show = activeSection === "work";
+  const show = activeSection === "work" && introPhase === "done";
   const list = projects && projects.length ? projects : PROJECTS_FALLBACK;
   const current = list[carRingIndex] || list[0];
 
-  // ignition on entering WORK
   useEffect(() => {
     if (show) sfxIgnition();
   }, [show]);
-
-  const driveTo = (i) => {
-    sfxWhoosh();
-    setIframeLoaded(false);
-    setPanelOpen(false);
-    setRingIndex(i);
-  };
-  const nextStop = () => driveTo((carRingIndex + 1) % list.length);
-  const prevStop = () => driveTo((carRingIndex - 1 + list.length) % list.length);
 
   return (
     <AnimatePresence>
       {show && (
         <>
-          {/* HUD top */}
+          {/* Section label — top center */}
           <motion.div
             key="hud"
             initial={{ opacity: 0, y: -20 }}
@@ -51,115 +40,32 @@ export default function WorkOverlay({ projects }) {
             style={{ top: 90, left: "50%", transform: "translateX(-50%)", textAlign: "center" }}
             data-testid="work-hud"
           >
-            <div className="font-display text-pixel glow-pixel mb-2" style={{ fontSize: 11 }}>
-              STATION 0{carRingIndex + 1} / 04
+            <div className="font-display text-pixel glow-pixel mb-1" style={{ fontSize: 9, letterSpacing: "0.18em" }}>
+              02 / WORK
             </div>
-            <div className="font-display text-hi" style={{ fontSize: 14, letterSpacing: "0.1em" }}>
-              {current.title.toUpperCase()}
-            </div>
-            <div className="text-hi opacity-80 mt-2" style={{ fontSize: 12 }}>
-              {current.tags.join(" · ")}
+            <div className="font-display text-mid" style={{ fontSize: 9, letterSpacing: "0.1em" }}>
+              CLICK A PROJECT CARD TO EXPLORE
             </div>
           </motion.div>
 
-          {/* Drive mode toggle (top-right pill) */}
-          <motion.button
-            key="freedrive"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease }}
-            onClick={() => {
-              sfxClick();
-              toggleFreeDrive();
-            }}
-            className="fixed z-30 pointer-events-auto"
-            style={{
-              top: 90,
-              right: 24,
-              padding: "8px 12px",
-              border: "1px solid var(--bg-line)",
-              background: "rgba(10,10,11,0.6)",
-              color: freeDrive ? "var(--ember)" : "var(--text-hi)",
-              fontFamily: "var(--font-display)",
-              fontSize: 9,
-              letterSpacing: "0.12em",
-              cursor: "pointer",
-            }}
-            data-testid="free-drive-toggle"
-            title="Toggle free-drive (WASD / arrow keys)"
-          >
-            {freeDrive ? "● FREE DRIVE" : "○ GUIDED"}
-          </motion.button>
-
+          {/* Scroll hint bottom */}
           {!panelOpen && (
             <motion.div
-              key="drive"
-              initial={{ opacity: 0, y: 30 }}
+              key="scroll-hint"
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 30 }}
-              transition={{ duration: 0.8, ease, delay: 0.1 }}
-              className="fixed z-30 pointer-events-auto w-full px-4"
-              style={{ bottom: 40, left: 0, textAlign: "center" }}
-              data-testid="drive-controls"
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.8, ease, delay: 0.3 }}
+              className="fixed z-30 pointer-events-none"
+              style={{ bottom: 32, left: "50%", transform: "translateX(-50%)", textAlign: "center" }}
             >
-              <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
-                <button
-                  onClick={prevStop}
-                  className="btn-ember"
-                  data-testid="drive-prev"
-                  style={{ padding: "12px 16px" }}
-                >
-                  ◂ PREV
-                </button>
-                <button
-                  onClick={() => {
-                    sfxClick();
-                    setPanelOpen(true);
-                  }}
-                  className="btn-pixel"
-                  data-testid="view-project-btn"
-                >
-                  VIEW PROJECT ▸
-                </button>
-                <button
-                  onClick={nextStop}
-                  className="btn-ember"
-                  data-testid="drive-next"
-                  style={{ padding: "12px 16px" }}
-                >
-                  DRIVE ON ▸
-                </button>
+              <div className="font-display text-lo" style={{ fontSize: 9, letterSpacing: "0.14em" }}>
+                ▾ scroll to <span className="text-pixel">CONTACT</span>
               </div>
-
-              <div className="flex items-center justify-center gap-2 mt-5">
-                {list.map((p, i) => (
-                  <button
-                    key={p.id}
-                    onClick={() => driveTo(i)}
-                    aria-label={`Go to ${p.title}`}
-                    data-testid={`station-dot-${i}`}
-                    style={{
-                      width: i === carRingIndex ? 28 : 10,
-                      height: 4,
-                      background: i === carRingIndex ? "var(--pixel)" : "var(--bg-line)",
-                      boxShadow: i === carRingIndex ? "0 0 8px rgba(255,255,105,0.7)" : "none",
-                      transition: "all 0.5s cubic-bezier(0.16,1,0.3,1)",
-                      cursor: "pointer",
-                      border: 0,
-                    }}
-                  />
-                ))}
-              </div>
-
-              {freeDrive && (
-                <div className="font-display text-mid mt-4" style={{ fontSize: 9, letterSpacing: "0.18em" }}>
-                  W/S · ACCELERATE  ·  A/D · STEER
-                </div>
-              )}
             </motion.div>
           )}
 
+          {/* Project detail panel — slides in from right when card clicked */}
           <AnimatePresence>
             {panelOpen && (
               <motion.div
@@ -176,19 +82,17 @@ export default function WorkOverlay({ projects }) {
                     PROJECT · 0{carRingIndex + 1}
                   </div>
                   <button
-                    onClick={() => {
-                      sfxClick();
-                      setPanelOpen(false);
-                    }}
+                    onClick={() => { sfxClick(); setPanelOpen(false); }}
                     className="nav-link"
                     data-testid="close-panel-btn"
                   >
                     CLOSE ✕
                   </button>
                 </div>
+
                 <h2
                   className="font-display text-hi mb-3"
-                  style={{ fontSize: 22, lineHeight: 1.25 }}
+                  style={{ fontSize: 20, lineHeight: 1.25 }}
                   data-testid="project-title"
                 >
                   {current.title.toUpperCase()}
@@ -218,6 +122,7 @@ export default function WorkOverlay({ projects }) {
                   ))}
                 </div>
 
+                {/* Live preview */}
                 <div
                   style={{
                     position: "relative",
@@ -238,11 +143,6 @@ export default function WorkOverlay({ projects }) {
                       ◉ LOADING LIVE PREVIEW…
                     </div>
                   )}
-                  {/*
-                    Render the iframe at desktop width (1440px) and scale it down
-                    into the panel for crisp, full-layout rendering instead of
-                    the mobile-layout blur we got before.
-                  */}
                   <iframe
                     key={current.url}
                     src={current.url}
@@ -251,13 +151,9 @@ export default function WorkOverlay({ projects }) {
                     sandbox="allow-scripts allow-same-origin allow-popups"
                     onLoad={() => setIframeLoaded(true)}
                     style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "1280px",
-                      height: "800px",
-                      border: 0,
-                      background: "#000",
+                      position: "absolute", top: 0, left: 0,
+                      width: "1280px", height: "800px",
+                      border: 0, background: "#000",
                       transformOrigin: "top left",
                       transform: "scale(var(--iframe-scale, 0.46))",
                     }}
@@ -280,12 +176,12 @@ export default function WorkOverlay({ projects }) {
                     onClick={() => {
                       sfxClick();
                       setPanelOpen(false);
-                      nextStop();
+                      setRingIndex((carRingIndex + 1) % list.length);
                     }}
                     className="btn-ember"
                     data-testid="drive-on-btn"
                   >
-                    DRIVE ON ▸
+                    NEXT PROJECT ▸
                   </button>
                 </div>
               </motion.div>
