@@ -13,7 +13,7 @@ export default function Scene() {
   const { reducedMotion, quality } = usePortfolio();
 
   useEffect(() => {
-    if (reducedMotion) return; // no auto-rotate, no inertia loop
+    if (reducedMotion) return;
     let raf;
     let lastT = performance.now();
     const tick = () => {
@@ -24,7 +24,7 @@ export default function Scene() {
         setRot((r) => r + inertia.current);
         inertia.current *= 0.92;
       } else if (!dragRef.current.active) {
-        setRot((r) => r + dt * 0.12);
+        setRot((r) => r + dt * 0.1);
       }
       raf = requestAnimationFrame(tick);
     };
@@ -32,11 +32,7 @@ export default function Scene() {
     return () => cancelAnimationFrame(raf);
   }, [reducedMotion]);
 
-  const onPointerDown = (e) => {
-    dragRef.current.active = true;
-    dragRef.current.x = e.clientX;
-    dragRef.current.last = e.clientX;
-  };
+  const onPointerDown = (e) => { dragRef.current = { active: true, x: e.clientX, last: e.clientX }; };
   const onPointerMove = (e) => {
     if (!dragRef.current.active) return;
     const dx = e.clientX - dragRef.current.last;
@@ -44,11 +40,8 @@ export default function Scene() {
     setRot((r) => r + dx * 0.008);
     inertia.current = dx * 0.008;
   };
-  const onPointerUp = () => {
-    dragRef.current.active = false;
-  };
+  const onPointerUp = () => { dragRef.current.active = false; };
 
-  // Quality tier → DPR cap (1.5 max on high for performance — was 2.0)
   const dpr = quality === "low" ? [1, 1.1] : quality === "mid" ? [1, 1.35] : [1, 1.5];
 
   return (
@@ -64,11 +57,21 @@ export default function Scene() {
       style={{ position: "fixed", inset: 0, zIndex: 0 }}
       data-testid="portfolio-canvas"
     >
-      <color attach="background" args={["#070912"]} />
-      <fog attach="fog" args={["#0c1224", 16, 90]} />
+      {/* Cyberpunk deep blue void */}
+      <color attach="background" args={["#020408"]} />
+      <fog attach="fog" args={["#050B18", 18, 95]} />
 
-      <ambientLight intensity={0.32} color="#2a3550" />
-      <directionalLight position={[-12, 18, -14]} intensity={0.55} color="#A8C0FF" />
+      {/* Cool blue ambient — low intensity */}
+      <ambientLight intensity={0.28} color="#080F2A" />
+
+      {/* Key light — ice blue from upper left */}
+      <directionalLight position={[-12, 18, -14]} intensity={0.6} color="#4488FF" castShadow />
+
+      {/* Rim light — electric cyan from right */}
+      <directionalLight position={[14, 8, 6]} intensity={0.35} color="#00CCFF" />
+
+      {/* Subtle ground fill */}
+      <pointLight position={[0, -1, 0]} color="#0A1A40" intensity={1.2} distance={20} decay={2} />
 
       <Suspense fallback={null}>
         <Arena heroRotationY={rot} />
