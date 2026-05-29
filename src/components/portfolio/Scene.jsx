@@ -3,7 +3,6 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import Arena from "./Arena";
 import CameraRig from "./CameraRig";
-import Effects from "./Effects";
 import { usePortfolio } from "../../store/usePortfolio";
 
 export default function Scene() {
@@ -19,7 +18,7 @@ export default function Scene() {
       const now = performance.now();
       const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
       if (Math.abs(inertia.current) > 0.0005) { setRot(r => r + inertia.current); inertia.current *= 0.92; }
-      else if (!dragRef.current.active) setRot(r => r + dt * 0.08);
+      else if (!dragRef.current.active) setRot(r => r + dt * 0.06);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -29,8 +28,9 @@ export default function Scene() {
   const onPointerDown = e => { dragRef.current = { active: true, last: e.clientX }; };
   const onPointerMove = e => {
     if (!dragRef.current.active) return;
-    const dx = e.clientX - dragRef.current.last; dragRef.current.last = e.clientX;
-    setRot(r => r + dx * 0.006); inertia.current = dx * 0.006;
+    const dx = e.clientX - dragRef.current.last;
+    dragRef.current.last = e.clientX;
+    setRot(r => r + dx * 0.005); inertia.current = dx * 0.005;
   };
   const onPointerUp = () => { dragRef.current.active = false; };
   const dpr = quality === "low" ? [1, 1.1] : quality === "mid" ? [1, 1.35] : [1, 1.5];
@@ -38,32 +38,32 @@ export default function Scene() {
   return (
     <Canvas
       shadows={quality !== "low"} dpr={dpr}
-      gl={{ antialias: quality !== "low", alpha: false, powerPreference: "high-performance" }}
-      camera={{ position: [0, 2.4, 7.5], fov: 38, near: 0.1, far: 200 }}
+      gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+      camera={{ position: [0, 3, 10], fov: 42, near: 0.1, far: 200 }}
       onPointerDown={onPointerDown} onPointerMove={onPointerMove}
       onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
       style={{ position: "fixed", inset: 0, zIndex: 0 }}
       data-testid="portfolio-canvas"
     >
-      {/* Dark cinematic void */}
-      <color attach="background" args={["#04030A"]} />
-      <fog attach="fog" args={["#0A0608", 15, 85]} />
+      {/* Light cream sky */}
+      <color attach="background" args={["#E8E4DA"]} />
+      <fog attach="fog" args={["#F0EDE6", 22, 90]} />
 
-      {/* Warm ambient — low golden fill */}
-      <ambientLight intensity={0.18} color="#1A1008" />
+      {/* Bright ambient — makes everything visible */}
+      <ambientLight intensity={1.4} color="#FFF8F0" />
 
-      {/* Main key light — warm gold from upper right */}
-      <directionalLight position={[10, 20, 8]} intensity={0.7} color="#F0C860" castShadow />
+      {/* Strong sun from upper right */}
+      <directionalLight position={[12, 20, 10]} intensity={1.8} color="#FFF5E0" castShadow
+        shadow-mapSize={[2048, 2048]} />
 
-      {/* Cool rim from left — creates cinematic contrast */}
-      <directionalLight position={[-14, 10, -8]} intensity={0.3} color="#6080C0" />
+      {/* Soft fill from left */}
+      <directionalLight position={[-10, 8, 6]} intensity={0.6} color="#D0E8FF" />
 
-      {/* Deep warm fill from below */}
-      <pointLight position={[0, -1, 4]} color="#200F06" intensity={2} distance={18} decay={2} />
+      {/* Ground bounce */}
+      <pointLight position={[0, -1, 5]} color="#F0E8D0" intensity={0.8} distance={20} decay={2} />
 
       <Suspense fallback={null}>
         <Arena heroRotationY={rot} />
-        {quality !== "low" && <Effects quality={quality} />}
       </Suspense>
       <CameraRig />
     </Canvas>
