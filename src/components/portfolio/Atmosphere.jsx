@@ -85,8 +85,8 @@ export default function Atmosphere() {
       buildingsRef.current.setMatrixAt(i, dummy.matrix);
       // Per-instance colour
       const color = b.lit
-        ? new THREE.Color("#08152A")
-        : new THREE.Color("#040810");
+        ? new THREE.Color("#120A06")
+        : new THREE.Color("#07050A");
       if (buildingsRef.current.instanceColor) {
         buildingsRef.current.setColorAt(i, color);
       }
@@ -106,8 +106,8 @@ export default function Atmosphere() {
       dummy.updateMatrix();
       windowsRef.current.setMatrixAt(i, dummy.matrix);
       const c = w.warm
-        ? new THREE.Color("#00AAFF")
-        : new THREE.Color("#7B2FFF");
+        ? new THREE.Color("#F0C860")
+        : new THREE.Color("#A0B0D0");
       if (windowsRef.current.instanceColor) {
         windowsRef.current.setColorAt(i, c);
       }
@@ -128,23 +128,23 @@ export default function Atmosphere() {
       <group position={[-42, 32, -58]}>
         <mesh>
           <sphereGeometry args={[7, 24, 24]} />
-          <meshBasicMaterial color="#D0E8FF" />
+          <meshBasicMaterial color="#E8E0D0" />
         </mesh>
         <mesh>
           <sphereGeometry args={[9, 24, 24]} />
-          <meshBasicMaterial color="#D0E8FF" transparent opacity={0.14} />
+          <meshBasicMaterial color="#E8E0D0" transparent opacity={0.14} />
         </mesh>
-        <pointLight color="#4488FF" intensity={0.45} distance={140} decay={1.0} />
+        <pointLight color="#C0A860" intensity={0.45} distance={140} decay={1.0} />
       </group>
 
       {/* All buildings — single InstancedMesh */}
       <instancedMesh ref={buildingsRef} args={[null, null, buildings.length]} frustumCulled={false}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial
-          color="#060D1E"
+          color="#0A0608"
           roughness={0.9}
           metalness={0.0}
-          emissive="#040A1A"
+          emissive="#080406"
           emissiveIntensity={0.35}
           vertexColors={false}
         />
@@ -167,7 +167,7 @@ export default function Atmosphere() {
       {/* Horizon haze */}
       <mesh position={[0, 12, -82]}>
         <planeGeometry args={[280, 60]} />
-        <meshBasicMaterial color="#040C1C" transparent opacity={0.45} />
+        <meshBasicMaterial color="#100806" transparent opacity={0.45} />
       </mesh>
     </group>
   );
